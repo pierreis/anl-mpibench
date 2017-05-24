@@ -96,8 +96,8 @@ void merge_stats(void *inbytes, void *inoutbytes, int *len, MPI_Datatype *dptr) 
   time_stats_t (*inout)[TIMEOUT] = inoutbytes;
   uint32_t sec = 0;
   for (; sec < TIMEOUT; ++sec) {
-    //inout[sec]->min_exec = min(in[sec]->min_exec, inout[sec]->min_exec);
-    //inout[sec]->max_exec = max(in[sec]->max_exec, inout[sec]->max_exec);
+    inout[sec]->min_exec = min(in[sec]->min_exec, inout[sec]->min_exec);
+    inout[sec]->max_exec = max(in[sec]->max_exec, inout[sec]->max_exec);
     inout[sec]->reqs = in[sec]->reqs + inout[sec]->reqs;
   }
 }
@@ -117,7 +117,7 @@ void print_stats() {
 int main(int argc, char** argv) {
 
   // Initialize the MPI environment
-  MPI_Init(NULL, NULL);
+  MPI_Init(&argc, &argv);
 
   // Create MPI types
   MPI_Datatype packedstats;
