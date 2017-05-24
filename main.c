@@ -15,7 +15,7 @@
  * Config
  */
 
-#define TIMEOUT        5
+#define TIMEOUT        600
 #define NUM_FILES      10
 #define WRITE_SIZE     100
 
