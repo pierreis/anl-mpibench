@@ -91,15 +91,10 @@ int update(void *arg) {
 }
 
 static
-void merge_stats(void *inbytes, void *inoutbytes, int *len, MPI_Datatype *dptr) {
-  time_stats_t (*in)[TIMEOUT] = inbytes;
-  time_stats_t (*inout)[TIMEOUT] = inoutbytes;
-  uint32_t sec = 0;
-  for (; sec < TIMEOUT; ++sec) {
-    inout[sec]->min_exec = min(in[sec]->min_exec, inout[sec]->min_exec);
-    inout[sec]->max_exec = max(in[sec]->max_exec, inout[sec]->max_exec);
-    inout[sec]->reqs = in[sec]->reqs + inout[sec]->reqs;
-  }
+void merge_stats(time_stats_t *in, time_stats_t *inout, int *len, MPI_Datatype *dptr) {
+  inout->min_exec = min(in->min_exec, inout->min_exec);
+  inout->max_exec = max(in->max_exec, inout->max_exec);
+  inout->reqs = in->reqs + inout->reqs;
 }
 
 static
@@ -120,13 +115,13 @@ int main(int argc, char** argv) {
   MPI_Init(&argc, &argv);
 
   // Create MPI types
-  MPI_Datatype packedstats;
-  MPI_Type_contiguous(sizeof(time_stats_t) * TIMEOUT, MPI_BYTE, &packedstats);
-  MPI_Type_commit(&packedstats);
+  MPI_Datatype packedstat;
+  MPI_Type_contiguous(sizeof(time_stats_t), MPI_BYTE, &packedstat);
+  MPI_Type_commit(&packedstat);
 
   // Create MPI merge definition
   MPI_Op merge;
-  MPI_Op_create(merge_stats, true, &merge);
+  MPI_Op_create((MPI_User_function *) merge_stats, true, &merge);
 
   // Get the number of processes
   int world_size;
@@ -168,7 +163,10 @@ int main(int argc, char** argv) {
   thrd_join(worker, NULL);
 
   // Merge time stats
-  MPI_Reduce(stats, result, 1, packedstats, merge, 0, MPI_COMM_WORLD);
+  uint32_t sec = 0;
+  for (; sec < TIMEOUT; ++sec) {
+    MPI_Reduce(&stats[i], &result[i], 1, packedstat, merge, 0, MPI_COMM_WORLD);
+  }
 
   // Print results
   if (world_rank == 0) {
