@@ -1,0 +1,28 @@
+cmake_minimum_required(VERSION 2.8)
+project(anl_mpibench)
+
+find_package(MPI)
+include_directories(SYSTEM ${MPI_INCLUDE_PATH})
+
+include(CheckFunctionExists)
+include(CheckLibraryExists)
+check_library_exists(rt clock_gettime "time.h" HAVE_CLOCK_GETTIME)
+if (HAVE_CLOCK_GETTIME)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lrt")
+  set(CMAKE_C_STANDARD_LIBRARIES "${CMAKE_C_STANDARD_LIBRARIES} -lrt")
+else()
+  check_library_exists(c clock_gettime "" HAVE_CLOCK_GETTIME)
+endif()
+
+find_package(Threads REQUIRED)
+if(THREADS_HAVE_PTHREAD_ARG)
+  set_property(TARGET anl_bench PROPERTY COMPILE_OPTIONS "-pthread")
+  set_property(TARGET anl_bench PROPERTY INTERFACE_COMPILE_OPTIONS "-pthread")
+endif()
+
+set(SOURCE_FILES main.c tinycthread.c)
+add_executable(anl_mpibench ${SOURCE_FILES})
+target_link_libraries(anl_mpibench ${MPI_C_LIBRARIES})
+if(CMAKE_THREAD_LIBS_INIT)
+  target_link_libraries(anl_mpibench "${CMAKE_THREAD_LIBS_INIT}")
+endif()
